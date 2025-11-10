@@ -1,0 +1,74 @@
+'use client';
+
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
+
+interface CartState {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
+  clear: () => void;
+  totalItems: () => number;
+  totalPrice: () => number;
+}
+
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      addItem: (item) =>
+        set((state) => {
+          const existing = state.items.find(
+            (cartItem) => cartItem.productId === item.productId
+          );
+
+          if (existing) {
+            return {
+              items: state.items.map((cartItem) =>
+                cartItem.productId === item.productId
+                  ? {
+                      ...cartItem,
+                      quantity: cartItem.quantity + item.quantity,
+                    }
+                  : cartItem
+              ),
+            };
+          }
+
+          return {
+            items: [...state.items, item],
+          };
+        }),
+      removeItem: (productId) =>
+        set((state) => ({
+          items: state.items.filter((item) => item.productId !== productId),
+        })),
+      updateQuantity: (productId, quantity) =>
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.productId === productId ? { ...item, quantity } : item
+          ),
+        })),
+      clear: () => set({ items: [] }),
+      totalItems: () =>
+        get().items.reduce((total, item) => total + item.quantity, 0),
+      totalPrice: () =>
+        get().items.reduce(
+          (total, item) => total + item.quantity * item.price,
+          0
+        ),
+    }),
+    {
+      name: "jewelry-cart",
+    }
+  )
+);
